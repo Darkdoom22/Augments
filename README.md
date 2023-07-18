@@ -36,6 +36,12 @@ print(augmentRes[augments["Augment 1 Id"]].en)
 for i=1, augments._raw.count, 1 do
   windower.add_to_chat(14, string.format("%d:[%d]", i, augments._raw[i])
 end
+
+--as well as
+print(augments["Path"])
+print(augments["Rank"])
+print(augments["Max Rank"])
+print(augments["Tnl"])
 ```
 
 
