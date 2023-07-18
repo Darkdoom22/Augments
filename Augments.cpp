@@ -37,7 +37,7 @@ static int GetAugmentSystemFourData(lua_State* L)
 
 	if(LuaCoreWrapper::oLua_GetTop(L) != 4)
 	{
-		return LuaCoreWrapper::oLuaL_Error(L, "Invalid number of arguments passed to RetrieveAugmentData, expected 4 (exdatablock1, exdatablock2, exdatablock3, itemId)");
+		return LuaCoreWrapper::oLuaL_Error(L, "Invalid number of arguments passed to GetAugmentSystemFourData, expected 4 (exdatablock1, exdatablock2, exdatablock3, itemId)");
 	}
 
 	//TODO: accept these in a more flexible/nicer way
