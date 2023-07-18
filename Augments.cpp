@@ -12,8 +12,8 @@ struct AugmentLookupItemData_t
 	uint32_t ExtDataBlock2;
 	uint32_t ExtDataBlock3;
 	uint16_t ItemId;
-	uint16_t Unk1;//used for augment style 4
-	uint16_t Unk2;//used for augment style 4
+	uint16_t Unk1;//used for weapon augments
+	uint16_t Unk2;//used for weapon augments
 };
 
 const auto fnGetAugmentSystemFourDataPattern = "\x53\x55\x56\x57\x33\xc9\xe8\x00\x00\x00\x00\x8b\x74\x24\x18";
