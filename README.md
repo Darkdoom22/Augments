@@ -10,13 +10,13 @@ local dllPath = string.format('%s%s', addonPath, 'Augments.dll')
 local AugmentInterface = assert(package.loadlib(dllPath, 'luaopen_Augments'))()
 ```
 
-#Functions
+# Functions
 
 ```cpp
 GetAugmentSystemFourData(uint32_t extDataBlock1, uint32_t extDataBlock2, uint32_t extDataBlock3, uint16_t itemId)
 ```
 
-#Usage sample
+# Usage sample
 
 ```lua
 local augmentRes = require('resources').augments
