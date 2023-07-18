@@ -2,7 +2,7 @@
 
 Currently supports equipment augment system 4 (Unity, Dynamis-D, Su5, JSE neck)
 
-#Including the dll
+# Including the dll
 
 ```lua
 local addonPath = windower.addon_path:gsub('\\', '/')
