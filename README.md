@@ -30,18 +30,26 @@ print(augments["Augment 1 Id"])
 print(augments["Augment 1 Potency"])
 print(augmentRes[augments["Augment 1 Id"]].en)
 
---where you can directly access up to augments["Augment 4 Id"], etc
+--where you can access up to augments["Augment Count"] worth of entries
 
---or you can loop on the raw returned data 
-for i=1, augments._raw.count, 1 do
-  windower.add_to_chat(14, string.format("%d:[%d]", i, augments._raw[i])
-end
+--additionally, you can determine how many augments are intended to be displayed on which line by accessing
+
+print(augments["Line 1 Augment Count"])
+
+--where you can access up to augments["Line Count"] worth of entries 
 
 --as well as
 print(augments["Path"])
 print(augments["Rank"])
 print(augments["Max Rank"])
 print(augments["Tnl"])
+print(augments["Main Hand"])
+
+--for anything else, you can loop on the raw data this is all parsed from
+for i=1, augments._raw.count, 1 do
+  windower.add_to_chat(14, string.format("%d:[%d]", i, augments._raw[i])
+end
+
 ```
 
 
