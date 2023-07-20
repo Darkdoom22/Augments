@@ -13,7 +13,7 @@ local AugmentInterface = assert(package.loadlib(dllPath, 'luaopen_Augments'))()
 # Functions
 
 ```cpp
-GetAugmentSystemFourData(uint32_t extDataBlock1, uint32_t extDataBlock2, uint32_t extDataBlock3, uint16_t itemId)
+GetAugmentSystemFourData(const char* extdata, uint16_t itemId)
 ```
 
 # Usage sample
@@ -22,8 +22,7 @@ GetAugmentSystemFourData(uint32_t extDataBlock1, uint32_t extDataBlock2, uint32_
 local augmentRes = require('resources').augments
 
 --find an item in your bag with system 4 augments and then..
-local exDataBlock1, exDataBlock2, exDataBlock3 = item.extdata:unpack("III",1)
-local augments = AugmentInterface.GetAugmentSystemFourData(exDataBlock1, exDataBlock2, exDataBlock3, item.id)
+local augments = AugmentInterface.GetAugmentSystemFourData(item.extdata, item.id)
 
 --this table contains the augment resource id and potency
 print(augments["Augment 1 Id"])
