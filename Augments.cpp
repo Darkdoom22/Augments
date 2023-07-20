@@ -5,6 +5,7 @@
 
 #include "Scanner.h"
 #include "LuaCoreWrapper.h"
+#include <format>
 
 constexpr auto PathMap = std::array<const char*, 4>{
 	"A",
@@ -26,7 +27,7 @@ struct AugmentLookupItemData_t
 constexpr auto fnGetAugmentSystemFourDataPattern = "\x53\x55\x56\x57\x33\xc9\xe8\x00\x00\x00\x00\x8b\x74\x24\x18";
 constexpr auto fnGetAugmentSystemFourDataMask = "xxxxxxx????xxxx";
 
-using fnGetAugmentSystemFourData = int(__cdecl*)(uint32_t*, AugmentLookupItemData_t*);
+using fnGetAugmentSystemFourData = int(__cdecl*)(int32_t*, AugmentLookupItemData_t*);
 
 const auto oGetAugmentSystemFourData = reinterpret_cast<fnGetAugmentSystemFourData>(FindPattern::ScanModIn(
 	const_cast<char*>(fnGetAugmentSystemFourDataPattern),
@@ -91,7 +92,9 @@ static int GetAugmentSystemFourData(lua_State* L)
 		0, //unk, only populated in memory for weapons that I saw but appears to work fine without it
 	};
 
-	const auto augmentData = std::make_unique<uint32_t[]>(86);
+	constexpr auto augmentDataSize = 86;
+
+	const auto augmentData = std::make_unique<int32_t[]>(augmentDataSize);
 	const auto result = oGetAugmentSystemFourData(augmentData.get(), &augmentLookupItemData);
 
 	LuaCoreWrapper::oLua_NewTable(L);
@@ -100,7 +103,6 @@ static int GetAugmentSystemFourData(lua_State* L)
 
 	LuaCoreWrapper::oLua_NewTable(L);
 
-	constexpr auto augmentDataSize = 86;
 
 	for(auto i = 0; i < augmentDataSize; i++)
 	{
@@ -115,29 +117,24 @@ static int GetAugmentSystemFourData(lua_State* L)
 
 	/*back to parent*/
 
-	LuaCoreWrapper::oLua_PushNumber(L, augmentData[0]);
-	LuaCoreWrapper::oLua_SetField(L, -2, "Augment 1 Id");
+	for(auto i = 0; i < augmentDataSize; i++)
+	{
+		if(i % 2 == 0)
+		{
+			if (augmentData[i] == 0)
+			{
+				break;
+			}
 
-	LuaCoreWrapper::oLua_PushNumber(L, augmentData[1]);
-	LuaCoreWrapper::oLua_SetField(L, -2, "Augment 1 Potency");
-
-	LuaCoreWrapper::oLua_PushNumber(L, augmentData[2]);
-	LuaCoreWrapper::oLua_SetField(L, -2, "Augment 2 Id");
-
-	LuaCoreWrapper::oLua_PushNumber(L, augmentData[3]);
-	LuaCoreWrapper::oLua_SetField(L, -2, "Augment 2 Potency");
-
-	LuaCoreWrapper::oLua_PushNumber(L, augmentData[4]);
-	LuaCoreWrapper::oLua_SetField(L, -2, "Augment 3 Id");
-
-	LuaCoreWrapper::oLua_PushNumber(L, augmentData[5]);
-	LuaCoreWrapper::oLua_SetField(L, -2, "Augment 3 Potency");
-
-	LuaCoreWrapper::oLua_PushNumber(L, augmentData[6]);
-	LuaCoreWrapper::oLua_SetField(L, -2, "Augment 4 Id");
-
-	LuaCoreWrapper::oLua_PushNumber(L, augmentData[7]);
-	LuaCoreWrapper::oLua_SetField(L, -2, "Augment 4 Potency");
+			LuaCoreWrapper::oLua_PushNumber(L, augmentData[i]);
+			LuaCoreWrapper::oLua_SetField(L, -2, std::format("Augment {} Id", i / 2 + 1).c_str());
+		}
+		else
+		{
+			LuaCoreWrapper::oLua_PushNumber(L, augmentData[i]);
+			LuaCoreWrapper::oLua_SetField(L, -2, std::format("Augment {} Potency", i / 2 + 1).c_str());
+		}
+	}
 
 	//ranks are hard capped at 30, there is a check for this in the game code that uses the current max rank if it's less than 31 or clamps it to 30 otherwise
 	//how the game unpacks these
