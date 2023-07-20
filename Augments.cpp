@@ -7,6 +7,8 @@
 #include "LuaCoreWrapper.h"
 #include <format>
 
+constexpr auto AUGMENT_DATA_SIZE = 86;
+
 constexpr auto PathMap = std::array<const char*, 4>{
 	"A",
 	"B",
@@ -64,6 +66,95 @@ const auto oGetAugmentRpLookupTable = reinterpret_cast<fnGetAugmentRpLookupTable
 	const_cast<char*>(fnGetAugmentRpLookupTableMask),
 	"FFXiMain.dll") + fnGetAugmentRpLookupTableOffset);*/
 
+void PopulateRawData(lua_State* L, const std::unique_ptr<int[]>& augmentData)
+{
+	LuaCoreWrapper::oLua_NewTable(L);
+
+	for (auto i = 0; i < AUGMENT_DATA_SIZE; i++)
+	{
+		LuaCoreWrapper::oLua_PushNumber(L, augmentData[i]);
+		LuaCoreWrapper::oLua_RawSetI(L, -2, i + 1);
+	}
+
+	LuaCoreWrapper::oLua_PushNumber(L, AUGMENT_DATA_SIZE);
+	LuaCoreWrapper::oLua_SetField(L, -2, "count");
+
+	LuaCoreWrapper::oLua_SetField(L, -2, "_raw");
+}
+
+void PopulateAugmentData(lua_State* L, const std::unique_ptr<int[]>& augmentData)
+{
+	auto augmentCount = 0;
+	for (auto i = 0; i < AUGMENT_DATA_SIZE; i++)
+	{
+		if (i % 2 == 0)
+		{
+			if (augmentData[i] == 0)
+			{
+				augmentCount = i / 2;
+				LuaCoreWrapper::oLua_PushNumber(L, augmentCount);
+				LuaCoreWrapper::oLua_SetField(L, -2, "Augment Count");
+				break;
+			}
+
+			LuaCoreWrapper::oLua_PushNumber(L, augmentData[i]);
+			LuaCoreWrapper::oLua_SetField(L, -2, std::format("Augment {} Id", i / 2 + 1).c_str());
+		}
+		else
+		{
+			LuaCoreWrapper::oLua_PushNumber(L, augmentData[i]);
+			LuaCoreWrapper::oLua_SetField(L, -2, std::format("Augment {} Potency", i / 2 + 1).c_str());
+		}
+	}
+}
+
+//ranks are hard capped at 30, there is a check for this in the game code that uses the current max rank if it's less than 31 or clamps it to 30 otherwise
+//how the game unpacks these
+/*const auto rank = augmentLookupItemData.ExtDataBlock2 >> 0x12 & 0x1f;
+const auto maxRank = ((augmentLookupItemData.ExtDataBlock2 >> 0x17 & 3) + 3) * 5;
+const auto path = augmentLookupItemData.ExtDataBlock2 & 3;
+const auto tnl = maxRank == rank ? 0 : pRpMap[rank] - (augmentLookupItemData.ExtDataBlock2 >> 2 & 0xffff);*/
+
+//no idea why there is so much empty space, maybe expansion room idk
+void PopulatePathRankData(lua_State* L, const std::unique_ptr<int[]>& augmentData)
+{
+	LuaCoreWrapper::oLua_PushString(L, PathMap[augmentData[77]]);
+	LuaCoreWrapper::oLua_SetField(L, -2, "Path");
+
+	LuaCoreWrapper::oLua_PushNumber(L, augmentData[78]);
+	LuaCoreWrapper::oLua_SetField(L, -2, "Rank");
+
+	LuaCoreWrapper::oLua_PushNumber(L, augmentData[79]);
+	LuaCoreWrapper::oLua_SetField(L, -2, "Tnl");
+
+	LuaCoreWrapper::oLua_PushNumber(L, augmentData[80]);
+	LuaCoreWrapper::oLua_SetField(L, -2, "Max Rank");
+
+	LuaCoreWrapper::oLua_PushBoolean(L, augmentData[85] % 2 != 0); //any odd displays the "Main Hand: " prefix, even displays nothing
+	LuaCoreWrapper::oLua_SetField(L, -2, "Main Hand");
+}
+
+void PopulateAugmentPerLineCounts(lua_State* L, const std::unique_ptr<int[]>& augmentData)
+{
+	constexpr auto maxLines = 4;
+	auto lastAugmentsThisLine = 0;
+	for (auto i = 0; i < maxLines; i++)
+	{
+		const auto augmentsThisLine = augmentData[81 + i] - lastAugmentsThisLine;
+		if (augmentsThisLine < 0)
+		{
+			LuaCoreWrapper::oLua_PushNumber(L, i);
+			LuaCoreWrapper::oLua_SetField(L, -2, "Line Count");
+			break;
+		}
+
+		LuaCoreWrapper::oLua_PushNumber(L, augmentsThisLine / 2 + 1);
+		LuaCoreWrapper::oLua_SetField(L, -2, std::format("Line {} Augment Count", i + 1).c_str());
+
+		lastAugmentsThisLine = augmentData[81 + i];
+	}
+}
+
 //TODO: decide on a better name maybe
 static int GetAugmentSystemFourData(lua_State* L)
 {
@@ -92,73 +183,16 @@ static int GetAugmentSystemFourData(lua_State* L)
 		0, //unk, only populated in memory for weapons that I saw but appears to work fine without it
 	};
 
-	constexpr auto augmentDataSize = 86;
-
-	const auto augmentData = std::make_unique<int32_t[]>(augmentDataSize);
+	const auto augmentData = std::make_unique<int32_t[]>(AUGMENT_DATA_SIZE);
 	const auto result = oGetAugmentSystemFourData(augmentData.get(), &augmentLookupItemData);
 
 	LuaCoreWrapper::oLua_NewTable(L);
 
-	/*_raw sub table*/
+	PopulateRawData(L, augmentData);
+	PopulateAugmentData(L, augmentData);
+	PopulatePathRankData(L, augmentData);
+	PopulateAugmentPerLineCounts(L, augmentData);
 
-	LuaCoreWrapper::oLua_NewTable(L);
-
-
-	for(auto i = 0; i < augmentDataSize; i++)
-	{
-		LuaCoreWrapper::oLua_PushNumber(L, augmentData[i]);
-		LuaCoreWrapper::oLua_RawSetI(L, -2, i + 1);
-	}
-
-	LuaCoreWrapper::oLua_PushNumber(L, augmentDataSize);
-	LuaCoreWrapper::oLua_SetField(L, -2, "count");
-
-	LuaCoreWrapper::oLua_SetField(L, -2, "_raw");
-
-	/*back to parent*/
-
-	for(auto i = 0; i < augmentDataSize; i++)
-	{
-		if(i % 2 == 0)
-		{
-			if (augmentData[i] == 0)
-			{
-				LuaCoreWrapper::oLua_PushNumber(L, i / 2);
-				LuaCoreWrapper::oLua_SetField(L, -2, "Augment Count");
-				break;
-			}
-
-			LuaCoreWrapper::oLua_PushNumber(L, augmentData[i]);
-			LuaCoreWrapper::oLua_SetField(L, -2, std::format("Augment {} Id", i / 2 + 1).c_str());
-		}
-		else
-		{
-			LuaCoreWrapper::oLua_PushNumber(L, augmentData[i]);
-			LuaCoreWrapper::oLua_SetField(L, -2, std::format("Augment {} Potency", i / 2 + 1).c_str());
-		}
-	}
-
-	//ranks are hard capped at 30, there is a check for this in the game code that uses the current max rank if it's less than 31 or clamps it to 30 otherwise
-	//how the game unpacks these
-	/*const auto rank = augmentLookupItemData.ExtDataBlock2 >> 0x12 & 0x1f;
-	const auto maxRank = ((augmentLookupItemData.ExtDataBlock2 >> 0x17 & 3) + 3) * 5;
-	const auto path = augmentLookupItemData.ExtDataBlock2 & 3;
-	const auto tnl = maxRank == rank ? 0 : pRpMap[rank] - (augmentLookupItemData.ExtDataBlock2 >> 2 & 0xffff);*/
-
-	//no idea why there is so much empty space, maybe expansion room idk
-
-	LuaCoreWrapper::oLua_PushString(L, PathMap[augmentData[77]]);
-	LuaCoreWrapper::oLua_SetField(L, -2, "Path");
-
-	LuaCoreWrapper::oLua_PushNumber(L, augmentData[78]);
-	LuaCoreWrapper::oLua_SetField(L, -2, "Rank");
-
-	LuaCoreWrapper::oLua_PushNumber(L, augmentData[79]);
-	LuaCoreWrapper::oLua_SetField(L, -2, "Tnl");
-
-	LuaCoreWrapper::oLua_PushNumber(L, augmentData[80]);
-	LuaCoreWrapper::oLua_SetField(L, -2, "Max Rank");
-	
 	return 1;
 }
 
