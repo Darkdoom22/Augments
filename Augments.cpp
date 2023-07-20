@@ -123,6 +123,8 @@ static int GetAugmentSystemFourData(lua_State* L)
 		{
 			if (augmentData[i] == 0)
 			{
+				LuaCoreWrapper::oLua_PushNumber(L, i / 2);
+				LuaCoreWrapper::oLua_SetField(L, -2, "Augment Count");
 				break;
 			}
 
