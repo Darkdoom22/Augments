@@ -176,7 +176,6 @@ static int GetAugmentSystemFourData(lua_State* L)
 		return LuaCoreWrapper::oLuaL_Error(L, "Invalid extdata string passed to GetAugmentSystemFourData, expected at least 12 characters");
 	}
 
-	//can't rely on lua's string allocation to keep extDataString alive, so we have to copy it and manage it ourselves
 	const auto extData = std::make_unique<uint32_t[]>(3);
 	memcpy(extData.get(), extDataString, 12);
 
